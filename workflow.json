@@ -1,0 +1,84 @@
+{
+  "workflow_name": "Neptune Controls - Director's Email Command Center",
+  "pattern": "multiple_independent_agents",
+  "nodes": [
+    {
+      "id": "input_node",
+      "type": "Input",
+      "label": "Director Command Input",
+      "nodeCategory": "input"
+    },
+    {
+      "id": "email_triage_agent",
+      "type": "Agent",
+      "label": "Email Triage Agent",
+      "nodeCategory": "agent",
+      "agent_id": "69995b4c7929f75fa2684f42",
+      "description": "Fetches recent emails from both Gmail and Outlook, categorizes them (Urgent, Team Updates, External, FYI), and flags priority messages requiring Director action.",
+      "model": "gpt-4.1",
+      "provider": "openai",
+      "temperature": 0.2,
+      "top_p": 1,
+      "tools": ["gmail", "outlook"],
+      "trigger": "Triage Inbox button on Dashboard"
+    },
+    {
+      "id": "response_drafter_agent",
+      "type": "Agent",
+      "label": "Response Drafter Agent",
+      "nodeCategory": "agent",
+      "agent_id": "69995b4cdb37e68c87a52dbb",
+      "description": "Analyzes a selected email's context and generates a professional draft response template appropriate for the Director's tone and common query patterns.",
+      "model": "gpt-4.1",
+      "provider": "openai",
+      "temperature": 0.5,
+      "top_p": 0.95,
+      "tools": ["gmail", "outlook"],
+      "trigger": "Draft Response button on Email Detail"
+    },
+    {
+      "id": "followup_scheduler_agent",
+      "type": "Agent",
+      "label": "Follow-up Scheduler Agent",
+      "nodeCategory": "agent",
+      "agent_id": "69995b4d2443fd6bb156f649",
+      "description": "Creates a follow-up reminder as a Google Calendar event for a selected email, with appropriate timing and context notes.",
+      "model": "gpt-4.1",
+      "provider": "openai",
+      "temperature": 0.2,
+      "top_p": 1,
+      "tools": ["googlecalendar"],
+      "trigger": "Schedule Follow-up button on Email Detail"
+    },
+    {
+      "id": "team_action_tracker_agent",
+      "type": "Agent",
+      "label": "Team Action Tracker Agent",
+      "nodeCategory": "agent",
+      "agent_id": "69995b4ea63b170a3b816fb2",
+      "description": "Conversational agent that helps the Director log new action items for team members, update statuses, query pending tasks, and summarize team accountability through natural language using Notion.",
+      "model": "gpt-4.1",
+      "provider": "openai",
+      "temperature": 0.3,
+      "top_p": 1,
+      "tools": ["notion"],
+      "trigger": "Chat input on Team Actions tab"
+    },
+    {
+      "id": "output_node",
+      "type": "Output",
+      "label": "Agent Output",
+      "nodeCategory": "end"
+    }
+  ],
+  "edges": [
+    {"source": "input_node", "target": "email_triage_agent"},
+    {"source": "input_node", "target": "response_drafter_agent"},
+    {"source": "input_node", "target": "followup_scheduler_agent"},
+    {"source": "input_node", "target": "team_action_tracker_agent"},
+    {"source": "email_triage_agent", "target": "output_node"},
+    {"source": "response_drafter_agent", "target": "output_node"},
+    {"source": "followup_scheduler_agent", "target": "output_node"},
+    {"source": "team_action_tracker_agent", "target": "output_node"}
+  ]
+}

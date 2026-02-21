@@ -1,0 +1,54 @@
+{
+  "agent_name": "Email Triage Agent",
+  "agent_id": "69995b4c7929f75fa2684f42",
+  "description": "Fetches recent emails from both Gmail and Outlook, categorizes them (Urgent, Team Updates, External, FYI), and flags priority messages requiring Director action.",
+  "agent_type": "json",
+  "accessor": "result",
+  "auto_generated": true,
+  "response_schema": {
+    "emails": [
+      {
+        "id": "string",
+        "subject": "string",
+        "sender": "string",
+        "snippet": "string",
+        "category": "string",
+        "priority": "string",
+        "source": "string",
+        "timestamp": "string",
+        "requiresAction": "boolean",
+        "body": "string"
+      }
+    ],
+    "summary": {
+      "total": "number",
+      "urgent": "number",
+      "teamUpdates": "number",
+      "external": "number",
+      "fyi": "number"
+    }
+  },
+  "example_response": {
+    "emails": [
+      {
+        "id": "sample string",
+        "subject": "sample string",
+        "sender": "sample string",
+        "snippet": "sample string",
+        "category": "sample string",
+        "priority": "sample string",
+        "source": "sample string",
+        "timestamp": "sample string",
+        "requiresAction": false,
+        "body": "sample string"
+      }
+    ],
+    "summary": {
+      "total": 0,
+      "urgent": 0,
+      "teamUpdates": 0,
+      "external": 0,
+      "fyi": 0
+    }
+  }
+}

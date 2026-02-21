@@ -1,0 +1,24 @@
+{
+  "agent_name": "Response Drafter Agent",
+  "agent_id": "69995b4cdb37e68c87a52dbb",
+  "description": "Analyzes a selected email's context and generates a professional draft response template appropriate for the Director's tone and common query patterns.",
+  "agent_type": "json",
+  "accessor": "result",
+  "auto_generated": true,
+  "response_schema": {
+    "draftResponse": "string",
+    "tone": "string",
+    "suggestedSubject": "string",
+    "keyPointsAddressed": [
+      "string"
+    ]
+  },
+  "example_response": {
+    "draftResponse": "sample string",
+    "tone": "sample string",
+    "suggestedSubject": "sample string",
+    "keyPointsAddressed": [
+      "sample string"
+    ]
+  }
+}

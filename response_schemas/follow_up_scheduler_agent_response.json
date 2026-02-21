@@ -1,0 +1,24 @@
+{
+  "agent_name": "Follow-up Scheduler Agent",
+  "agent_id": "69995b4d2443fd6bb156f649",
+  "description": "Creates a follow-up reminder as a Google Calendar event for a selected email, with appropriate timing and context notes.",
+  "agent_type": "json",
+  "accessor": "result",
+  "auto_generated": true,
+  "response_schema": {
+    "eventCreated": "boolean",
+    "eventTitle": "string",
+    "eventDate": "string",
+    "eventTime": "string",
+    "eventNotes": "string",
+    "calendarName": "string"
+  },
+  "example_response": {
+    "eventCreated": false,
+    "eventTitle": "sample string",
+    "eventDate": "sample string",
+    "eventTime": "sample string",
+    "eventNotes": "sample string",
+    "calendarName": "sample string"
+  }
+}

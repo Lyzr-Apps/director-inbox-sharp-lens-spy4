@@ -1,0 +1,32 @@
+{
+  "agent_name": "Team Action Tracker Agent",
+  "agent_id": "69995b4ea63b170a3b816fb2",
+  "description": "Conversational agent that helps the Director log new action items for team members, update statuses, query pending tasks, and summarize team accountability through natural language using Notion.",
+  "agent_type": "json",
+  "accessor": "result",
+  "auto_generated": true,
+  "response_schema": {
+    "message": "string",
+    "actionItems": [
+      {
+        "action": "string",
+        "assignee": "string",
+        "deadline": "string",
+        "status": "string",
+        "priority": "string"
+      }
+    ]
+  },
+  "example_response": {
+    "message": "sample string",
+    "actionItems": [
+      {
+        "action": "sample string",
+        "assignee": "sample string",
+        "deadline": "sample string",
+        "status": "sample string",
+        "priority": "sample string"
+      }
+    ]
+  }
+}

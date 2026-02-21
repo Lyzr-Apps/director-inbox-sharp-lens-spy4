@@ -1,0 +1,40 @@
+{
+  "workflow_name": "Neptune Controls - Director's Email Command Center",
+  "pattern": "multiple_independent_agents",
+  "agents": [
+    {
+      "agent_id": "69995b4c7929f75fa2684f42",
+      "name": "Email Triage Agent",
+      "node_id": "email_triage_agent",
+      "tools": ["gmail", "outlook"],
+      "tool_actions": ["GMAIL_FETCH_EMAILS", "OUTLOOK_OUTLOOK_LIST_MESSAGES"],
+      "response_schema_file": "response_schemas/email_triage_agent_response.json"
+    },
+    {
+      "agent_id": "69995b4cdb37e68c87a52dbb",
+      "name": "Response Drafter Agent",
+      "node_id": "response_drafter_agent",
+      "tools": ["gmail", "outlook"],
+      "tool_actions": ["GMAIL_SEND_EMAIL", "GMAIL_REPLY_TO_THREAD", "OUTLOOK_OUTLOOK_SEND_EMAIL", "OUTLOOK_OUTLOOK_REPLY_EMAIL"],
+      "response_schema_file": "response_schemas/response_drafter_agent_response.json"
+    },
+    {
+      "agent_id": "69995b4d2443fd6bb156f649",
+      "name": "Follow-up Scheduler Agent",
+      "node_id": "followup_scheduler_agent",
+      "tools": ["googlecalendar"],
+      "tool_actions": ["GOOGLECALENDAR_CREATE_EVENT", "GOOGLECALENDAR_LIST_CALENDARS"],
+      "response_schema_file": "response_schemas/follow_up_scheduler_agent_response.json"
+    },
+    {
+      "agent_id": "69995b4ea63b170a3b816fb2",
+      "name": "Team Action Tracker Agent",
+      "node_id": "team_action_tracker_agent",
+      "tools": ["notion"],
+      "tool_actions": ["NOTION_INSERT_ROW_DATABASE", "NOTION_QUERY_DATABASE", "NOTION_UPDATE_ROW_DATABASE", "NOTION_FETCH_DATABASE"],
+      "response_schema_file": "response_schemas/team_action_tracker_agent_response.json"
+    }
+  ],
+  "rag_ids": [],
+  "schedule_ids": []
+}
