@@ -1,21 +1,21 @@
 {
-  "workflow_name": "Neptune Controls - Director's Email Command Center",
+  "workflow_name": "Neptune Controls - Director's Communication Command Center",
   "pattern": "multiple_independent_agents",
   "agents": [
     {
       "agent_id": "69995b4c7929f75fa2684f42",
-      "name": "Email Triage Agent",
-      "node_id": "email_triage_agent",
-      "tools": ["gmail", "outlook"],
-      "tool_actions": ["GMAIL_FETCH_EMAILS", "OUTLOOK_OUTLOOK_LIST_MESSAGES"],
+      "name": "Message Triage Agent",
+      "node_id": "message_triage_agent",
+      "tools": ["gmail", "outlook", "whatsapp"],
+      "tool_actions": ["GMAIL_FETCH_EMAILS", "OUTLOOK_OUTLOOK_LIST_MESSAGES", "WHATSAPP_FETCH_MESSAGES", "WHATSAPP_FETCH_GROUP_MESSAGES", "WHATSAPP_LIST_GROUPS"],
       "response_schema_file": "response_schemas/email_triage_agent_response.json"
     },
     {
       "agent_id": "69995b4cdb37e68c87a52dbb",
       "name": "Response Drafter Agent",
       "node_id": "response_drafter_agent",
-      "tools": ["gmail", "outlook"],
-      "tool_actions": ["GMAIL_SEND_EMAIL", "GMAIL_REPLY_TO_THREAD", "OUTLOOK_OUTLOOK_SEND_EMAIL", "OUTLOOK_OUTLOOK_REPLY_EMAIL"],
+      "tools": ["gmail", "outlook", "whatsapp"],
+      "tool_actions": ["GMAIL_SEND_EMAIL", "GMAIL_REPLY_TO_THREAD", "OUTLOOK_OUTLOOK_SEND_EMAIL", "OUTLOOK_OUTLOOK_REPLY_EMAIL", "WHATSAPP_SEND_MESSAGE", "WHATSAPP_SEND_GROUP_MESSAGE"],
       "response_schema_file": "response_schemas/response_drafter_agent_response.json"
     },
     {

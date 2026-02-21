@@ -1,5 +1,5 @@
 {
-  "workflow_name": "Neptune Controls - Director's Email Command Center",
+  "workflow_name": "Neptune Controls - Director's Communication Command Center",
   "pattern": "multiple_independent_agents",
   "nodes": [
     {
@@ -9,17 +9,17 @@
       "nodeCategory": "input"
     },
     {
-      "id": "email_triage_agent",
+      "id": "message_triage_agent",
       "type": "Agent",
-      "label": "Email Triage Agent",
+      "label": "Message Triage Agent",
       "nodeCategory": "agent",
       "agent_id": "69995b4c7929f75fa2684f42",
-      "description": "Fetches recent emails from both Gmail and Outlook, categorizes them (Urgent, Team Updates, External, FYI), and flags priority messages requiring Director action.",
+      "description": "Fetches recent emails from Gmail and Outlook, plus WhatsApp messages and group chats. Categorizes all messages (Urgent, Team Updates, External, FYI, WhatsApp Groups), flags priority items requiring Director action.",
       "model": "gpt-4.1",
       "provider": "openai",
       "temperature": 0.2,
       "top_p": 1,
-      "tools": ["gmail", "outlook"],
+      "tools": ["gmail", "outlook", "whatsapp"],
       "trigger": "Triage Inbox button on Dashboard"
     },
     {
@@ -28,13 +28,13 @@
       "label": "Response Drafter Agent",
       "nodeCategory": "agent",
       "agent_id": "69995b4cdb37e68c87a52dbb",
-      "description": "Analyzes a selected email's context and generates a professional draft response template appropriate for the Director's tone and common query patterns.",
+      "description": "Analyzes a selected email or WhatsApp message's context and generates a professional draft response. Can send replies via Gmail, Outlook, or WhatsApp (including group messages).",
       "model": "gpt-4.1",
       "provider": "openai",
       "temperature": 0.5,
       "top_p": 0.95,
-      "tools": ["gmail", "outlook"],
-      "trigger": "Draft Response button on Email Detail"
+      "tools": ["gmail", "outlook", "whatsapp"],
+      "trigger": "Draft Response button on Message Detail"
     },
     {
       "id": "followup_scheduler_agent",
@@ -48,7 +48,7 @@
       "temperature": 0.2,
       "top_p": 1,
       "tools": ["googlecalendar"],
-      "trigger": "Schedule Follow-up button on Email Detail"
+      "trigger": "Schedule Follow-up button on Message Detail"
     },
     {
       "id": "team_action_tracker_agent",
@@ -72,11 +72,11 @@
     }
   ],
   "edges": [
-    {"source": "input_node", "target": "email_triage_agent"},
+    {"source": "input_node", "target": "message_triage_agent"},
     {"source": "input_node", "target": "response_drafter_agent"},
     {"source": "input_node", "target": "followup_scheduler_agent"},
     {"source": "input_node", "target": "team_action_tracker_agent"},
-    {"source": "email_triage_agent", "target": "output_node"},
+    {"source": "message_triage_agent", "target": "output_node"},
     {"source": "response_drafter_agent", "target": "output_node"},
     {"source": "followup_scheduler_agent", "target": "output_node"},
     {"source": "team_action_tracker_agent", "target": "output_node"}

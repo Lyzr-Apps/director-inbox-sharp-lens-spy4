@@ -30,11 +30,13 @@ import {
   HiOutlineRefresh,
   HiOutlineX,
   HiOutlineExclamation,
-  HiOutlineChatAlt2
+  HiOutlineChatAlt2,
+  HiOutlinePhone
 } from 'react-icons/hi'
+import { HiOutlineChatBubbleLeftRight } from 'react-icons/hi2'
 
 // --- Agent IDs ---
-const EMAIL_TRIAGE_AGENT_ID = '69995b4c7929f75fa2684f42'
+const EMAIL_TRIAGE_AGENT_ID = '69995b4c7929f75fa2684f42' // Message Triage Agent
 const RESPONSE_DRAFTER_AGENT_ID = '69995b4cdb37e68c87a52dbb'
 const FOLLOWUP_SCHEDULER_AGENT_ID = '69995b4d2443fd6bb156f649'
 const TEAM_ACTION_TRACKER_AGENT_ID = '69995b4ea63b170a3b816fb2'
@@ -51,6 +53,7 @@ interface EmailItem {
   timestamp: string
   requiresAction: boolean
   body: string
+  groupName?: string
 }
 
 interface EmailSummary {
@@ -59,6 +62,8 @@ interface EmailSummary {
   teamUpdates: number
   external: number
   fyi: number
+  whatsapp: number
+  whatsappGroups: number
 }
 
 interface DraftResponse {
@@ -232,15 +237,56 @@ const SAMPLE_EMAILS: EmailItem[] = [
     timestamp: '2025-01-15T06:05:00Z',
     requiresAction: true,
     body: 'CRITICAL ALERT\n\nProduction environment has been experiencing intermittent 500 errors since 06:00 UTC.\n\n**Impact:**\n- 30% of API requests failing\n- Customer-facing dashboard partially offline\n- ETA for resolution: Investigating\n\n**Team Response:**\n- On-call engineer has been paged\n- Database team investigating connection pool exhaustion\n- Status page updated\n\nPlease acknowledge receipt.\n\n- DevOps Monitoring'
+  },
+  {
+    id: 'e6',
+    subject: 'Vendor contract review needed',
+    sender: '+1 (555) 234-5678',
+    snippet: 'Hi Director, the vendor sent over the revised contract. Can you review by Thursday?',
+    category: 'Urgent',
+    priority: 'high',
+    source: 'WhatsApp',
+    timestamp: '2025-01-15T10:12:00Z',
+    requiresAction: true,
+    body: 'Hi Director, the vendor sent over the revised contract. Can you review by Thursday? They need our sign-off before the end of the month. I can forward the document to your email if needed.',
+    groupName: ''
+  },
+  {
+    id: 'e7',
+    subject: 'Engineering Team',
+    sender: 'Mike Reynolds',
+    snippet: 'Sprint demo moved to 3pm tomorrow. Please confirm availability.',
+    category: 'WhatsApp Groups',
+    priority: 'medium',
+    source: 'WhatsApp',
+    timestamp: '2025-01-15T09:45:00Z',
+    requiresAction: false,
+    body: 'Sprint demo moved to 3pm tomorrow. Please confirm availability. We have 4 stories to present and need all stakeholders present.',
+    groupName: 'Engineering Team'
+  },
+  {
+    id: 'e8',
+    subject: 'Leadership Sync',
+    sender: 'Sarah Mitchell',
+    snippet: 'Board meeting prep: can everyone review slides by EOD? Link shared in the drive.',
+    category: 'WhatsApp Groups',
+    priority: 'high',
+    source: 'WhatsApp',
+    timestamp: '2025-01-15T08:30:00Z',
+    requiresAction: true,
+    body: 'Board meeting prep: can everyone review slides by EOD? Link shared in the drive. Please add your department updates to slides 12-15. The CEO specifically asked for quarterly metrics.',
+    groupName: 'Leadership Sync'
   }
 ]
 
 const SAMPLE_SUMMARY: EmailSummary = {
-  total: 23,
-  urgent: 4,
+  total: 26,
+  urgent: 5,
   teamUpdates: 8,
   external: 6,
-  fyi: 5
+  fyi: 5,
+  whatsapp: 3,
+  whatsappGroups: 2
 }
 
 const SAMPLE_ACTION_ITEMS: ActionItem[] = [
@@ -320,6 +366,7 @@ function CategoryBadge({ category }: { category: string }) {
   if (c === 'team updates') return <Badge className="text-xs bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-100">{category}</Badge>
   if (c === 'external') return <Badge className="text-xs bg-purple-100 text-purple-800 border-purple-200 hover:bg-purple-100">{category}</Badge>
   if (c === 'fyi') return <Badge className="text-xs bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-100">{category}</Badge>
+  if (c === 'whatsapp' || c === 'whatsapp groups') return <Badge className="text-xs bg-green-100 text-green-800 border-green-200 hover:bg-green-100">{category}</Badge>
   return <Badge variant="outline" className="text-xs">{category ?? 'Unknown'}</Badge>
 }
 
@@ -337,6 +384,7 @@ function SourceBadge({ source }: { source: string }) {
   const s = (source ?? '').toLowerCase()
   if (s === 'gmail') return <Badge variant="outline" className="text-xs border-red-200 text-red-600">Gmail</Badge>
   if (s === 'outlook') return <Badge variant="outline" className="text-xs border-blue-200 text-blue-600">Outlook</Badge>
+  if (s === 'whatsapp') return <Badge variant="outline" className="text-xs border-green-200 text-green-600">WhatsApp</Badge>
   return <Badge variant="outline" className="text-xs">{source ?? 'Email'}</Badge>
 }
 
@@ -377,7 +425,7 @@ export default function Page() {
 
   // --- Email State ---
   const [emails, setEmails] = useState<EmailItem[]>([])
-  const [summary, setSummary] = useState<EmailSummary>({ total: 0, urgent: 0, teamUpdates: 0, external: 0, fyi: 0 })
+  const [summary, setSummary] = useState<EmailSummary>({ total: 0, urgent: 0, teamUpdates: 0, external: 0, fyi: 0, whatsapp: 0, whatsappGroups: 0 })
   const [selectedEmail, setSelectedEmail] = useState<EmailItem | null>(null)
   const [categoryFilter, setCategoryFilter] = useState('All')
   const [sourceFilter, setSourceFilter] = useState('Both')
@@ -420,6 +468,7 @@ export default function Page() {
   const [notifTeam, setNotifTeam] = useState(true)
   const [notifExternal, setNotifExternal] = useState(false)
   const [notifFyi, setNotifFyi] = useState(false)
+  const [notifWhatsApp, setNotifWhatsApp] = useState(true)
 
   const chatEndRef = useRef<HTMLDivElement>(null)
   const [sessionId] = useState(() => 'session_' + Math.random().toString(36).substring(2, 9))
@@ -459,7 +508,7 @@ export default function Page() {
     } else {
       if (sampleEmailsAppliedRef.current) {
         setEmails([])
-        setSummary({ total: 0, urgent: 0, teamUpdates: 0, external: 0, fyi: 0 })
+        setSummary({ total: 0, urgent: 0, teamUpdates: 0, external: 0, fyi: 0, whatsapp: 0, whatsappGroups: 0 })
         sampleEmailsAppliedRef.current = false
       }
       if (sampleActionsAppliedRef.current) {
@@ -481,7 +530,7 @@ export default function Page() {
     setActiveAgentId(EMAIL_TRIAGE_AGENT_ID)
     try {
       const result = await callAIAgent(
-        'Fetch and categorize my recent emails from Gmail and Outlook. Categorize each as Urgent, Team Updates, External, or FYI. Flag any that require my immediate action.',
+        'Fetch and categorize my recent messages from Gmail, Outlook, and WhatsApp (including group chats). Categorize each as Urgent, Team Updates, External, FYI, or WhatsApp Groups. Flag any that require my immediate action.',
         EMAIL_TRIAGE_AGENT_ID
       )
       const data = parseAgentResult(result)
@@ -494,7 +543,9 @@ export default function Page() {
           urgent: data?.summary?.urgent ?? 0,
           teamUpdates: data?.summary?.teamUpdates ?? 0,
           external: data?.summary?.external ?? 0,
-          fyi: data?.summary?.fyi ?? 0
+          fyi: data?.summary?.fyi ?? 0,
+          whatsapp: data?.summary?.whatsapp ?? 0,
+          whatsappGroups: data?.summary?.whatsappGroups ?? 0
         })
       } else {
         setEmailsError('Failed to fetch emails. Please try again.')
@@ -515,11 +566,13 @@ export default function Page() {
     setDraftData(null)
     setSendSuccess(null)
     setActiveAgentId(RESPONSE_DRAFTER_AGENT_ID)
+    const isWhatsApp = email.source === 'WhatsApp'
+    const prompt = isWhatsApp
+      ? `Draft a professional but conversational WhatsApp response for this message:\nFrom: ${email.sender}${email.groupName ? `\nGroup: ${email.groupName}` : ''}\nSubject/Topic: ${email.subject}\nMessage: ${email.body}`
+      : `Draft a professional response for this email:\nFrom: ${email.sender}\nSubject: ${email.subject}\nBody: ${email.body}`
+    setSendSource(email.source === 'WhatsApp' ? 'WhatsApp' : (email.source || 'Gmail'))
     try {
-      const result = await callAIAgent(
-        `Draft a professional response for this email:\nFrom: ${email.sender}\nSubject: ${email.subject}\nBody: ${email.body}`,
-        RESPONSE_DRAFTER_AGENT_ID
-      )
+      const result = await callAIAgent(prompt, RESPONSE_DRAFTER_AGENT_ID)
       const data = parseAgentResult(result)
       if (data) {
         const draft: DraftResponse = {
@@ -530,7 +583,11 @@ export default function Page() {
         }
         setDraftData(draft)
         setEditedDraft(draft.draftResponse)
-        setRecipientEmail(email.sender?.match(/<(.+?)>/)?.[1] ?? email.sender ?? '')
+        if (email.source === 'WhatsApp') {
+          setRecipientEmail(email.sender || '')
+        } else {
+          setRecipientEmail(email.sender?.match(/<(.+?)>/)?.[1] ?? email.sender ?? '')
+        }
       } else {
         setDraftError('Failed to generate draft response.')
       }
@@ -549,15 +606,16 @@ export default function Page() {
     setSendSuccess(null)
     setDraftError(null)
     setActiveAgentId(RESPONSE_DRAFTER_AGENT_ID)
+    const isWhatsAppSend = sendSource === 'WhatsApp'
+    const sendPrompt = isWhatsAppSend
+      ? `Send this WhatsApp message:\nTo: ${recipientEmail}\nMessage: ${editedDraft}${selectedEmail?.groupName ? `\nGroup: ${selectedEmail.groupName}` : ''}`
+      : `Send this email reply via ${sendSource}:\nTo: ${recipientEmail}\nSubject: ${draftData?.suggestedSubject ?? selectedEmail?.subject ?? ''}\nBody: ${editedDraft}`
     try {
-      const result = await callAIAgent(
-        `Send this email reply via ${sendSource}:\nTo: ${recipientEmail}\nSubject: ${draftData?.suggestedSubject ?? selectedEmail?.subject ?? ''}\nBody: ${editedDraft}`,
-        RESPONSE_DRAFTER_AGENT_ID
-      )
+      const result = await callAIAgent(sendPrompt, RESPONSE_DRAFTER_AGENT_ID)
       if (result?.success) {
-        setSendSuccess('Email sent successfully!')
+        setSendSuccess(isWhatsAppSend ? 'WhatsApp message sent successfully!' : 'Email sent successfully!')
       } else {
-        setDraftError('Failed to send email. Please try again.')
+        setDraftError('Failed to send message. Please try again.')
       }
     } catch {
       setDraftError('An error occurred while sending.')
@@ -679,8 +737,8 @@ export default function Page() {
 
   // --- Agents list for status ---
   const agents = [
-    { id: EMAIL_TRIAGE_AGENT_ID, name: 'Email Triage', purpose: 'Fetches and categorizes emails' },
-    { id: RESPONSE_DRAFTER_AGENT_ID, name: 'Response Drafter', purpose: 'Drafts professional email responses' },
+    { id: EMAIL_TRIAGE_AGENT_ID, name: 'Message Triage', purpose: 'Fetches and categorizes emails and WhatsApp messages' },
+    { id: RESPONSE_DRAFTER_AGENT_ID, name: 'Response Drafter', purpose: 'Drafts professional email and WhatsApp responses' },
     { id: FOLLOWUP_SCHEDULER_AGENT_ID, name: 'Follow-up Scheduler', purpose: 'Creates calendar follow-up reminders' },
     { id: TEAM_ACTION_TRACKER_AGENT_ID, name: 'Team Tracker', purpose: 'Manages team action items via chat' }
   ]
@@ -842,12 +900,13 @@ export default function Page() {
                   </div>
 
                   {/* Stat Cards */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                     {[
                       { label: 'Unread', value: unreadCount, icon: HiOutlineMail, bg: 'bg-blue-50', iconColor: 'text-blue-600' },
                       { label: 'Priority', value: priorityCount, icon: HiOutlineFlag, bg: 'bg-red-50', iconColor: 'text-red-600' },
+                      { label: 'WhatsApp', value: (summary.whatsapp ?? 0) + (summary.whatsappGroups ?? 0), icon: HiOutlineChatBubbleLeftRight, bg: 'bg-green-50', iconColor: 'text-green-600' },
                       { label: 'Pending Follow-ups', value: pendingFollowUps, icon: HiOutlineClock, bg: 'bg-amber-50', iconColor: 'text-amber-600' },
-                      { label: 'Open Team Actions', value: openTeamActions, icon: HiOutlineUsers, bg: 'bg-green-50', iconColor: 'text-green-600' }
+                      { label: 'Open Team Actions', value: openTeamActions, icon: HiOutlineUsers, bg: 'bg-emerald-50', iconColor: 'text-emerald-600' }
                     ].map(stat => {
                       const StatIcon = stat.icon
                       const hasData = emails.length > 0 || allActionItems.length > 0
@@ -973,7 +1032,7 @@ export default function Page() {
                         </div>
                         <h3 className="text-lg font-semibold mb-2">Welcome to Neptune Command Center</h3>
                         <p className="text-sm text-muted-foreground max-w-md mx-auto mb-6" style={{ lineHeight: '1.55' }}>
-                          Click &quot;Triage Inbox&quot; to fetch and categorize your recent emails from Gmail and Outlook, or enable &quot;Sample Data&quot; to explore the interface.
+                          Click &quot;Triage Inbox&quot; to fetch and categorize your recent messages from Gmail, Outlook, and WhatsApp, or enable &quot;Sample Data&quot; to explore the interface.
                         </p>
                         <Button onClick={handleTriageInbox} disabled={emailsLoading} size="lg" className="gap-2">
                           <HiOutlineInbox className="h-5 w-5" />
@@ -991,7 +1050,7 @@ export default function Page() {
                   <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
                     <div>
                       <h2 className="text-2xl font-semibold tracking-tight" style={{ letterSpacing: '-0.01em' }}>Inbox</h2>
-                      <p className="text-sm text-muted-foreground mt-1">{filteredEmails.length} email{filteredEmails.length !== 1 ? 's' : ''}{categoryFilter !== 'All' ? ` in ${categoryFilter}` : ''}</p>
+                      <p className="text-sm text-muted-foreground mt-1">{filteredEmails.length} message{filteredEmails.length !== 1 ? 's' : ''}{categoryFilter !== 'All' ? ` in ${categoryFilter}` : ''}</p>
                     </div>
                     <Button onClick={handleTriageInbox} disabled={emailsLoading} variant="outline" size="sm" className="gap-2">
                       {emailsLoading ? <HiOutlineRefresh className="h-4 w-4 animate-spin" /> : <HiOutlineRefresh className="h-4 w-4" />}
@@ -1002,12 +1061,13 @@ export default function Page() {
                   {/* Filters */}
                   <div className="flex flex-col sm:flex-row gap-3 mb-4">
                     <Tabs value={categoryFilter} onValueChange={setCategoryFilter} className="flex-1">
-                      <TabsList className="grid grid-cols-5 w-full">
+                      <TabsList className="grid grid-cols-6 w-full">
                         <TabsTrigger value="All" className="text-xs">All</TabsTrigger>
                         <TabsTrigger value="Urgent" className="text-xs">Urgent</TabsTrigger>
                         <TabsTrigger value="Team Updates" className="text-xs">Team</TabsTrigger>
                         <TabsTrigger value="External" className="text-xs">External</TabsTrigger>
                         <TabsTrigger value="FYI" className="text-xs">FYI</TabsTrigger>
+                        <TabsTrigger value="WhatsApp Groups" className="text-xs">WhatsApp</TabsTrigger>
                       </TabsList>
                     </Tabs>
                     <Select value={sourceFilter} onValueChange={setSourceFilter}>
@@ -1018,6 +1078,7 @@ export default function Page() {
                         <SelectItem value="Both">All Sources</SelectItem>
                         <SelectItem value="Gmail">Gmail</SelectItem>
                         <SelectItem value="Outlook">Outlook</SelectItem>
+                        <SelectItem value="WhatsApp">WhatsApp</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -1062,6 +1123,12 @@ export default function Page() {
                                       <p className="text-sm font-medium truncate">{email.subject}</p>
                                     </div>
                                     <p className="text-xs text-muted-foreground truncate">{email.sender}</p>
+                                    {email.source === 'WhatsApp' && email.groupName && (
+                                      <p className="text-[10px] text-green-600 truncate mt-0.5 flex items-center gap-1">
+                                        <HiOutlineChatBubbleLeftRight className="h-3 w-3 inline" />
+                                        {email.groupName}
+                                      </p>
+                                    )}
                                     <p className="text-xs text-muted-foreground/70 truncate mt-1">{email.snippet}</p>
                                   </div>
                                   <div className="flex flex-col items-end gap-1 flex-shrink-0">
@@ -1089,6 +1156,11 @@ export default function Page() {
                                   <CategoryBadge category={selectedEmail.category} />
                                   <PriorityBadge priority={selectedEmail.priority} />
                                   <SourceBadge source={selectedEmail.source} />
+                                  {selectedEmail.groupName && (
+                                    <Badge variant="outline" className="text-xs border-green-200 text-green-700">
+                                      Group: {selectedEmail.groupName}
+                                    </Badge>
+                                  )}
                                   <span className="text-xs text-muted-foreground">{formatDate(selectedEmail.timestamp)} {formatTime(selectedEmail.timestamp)}</span>
                                 </div>
                               </div>
@@ -1167,12 +1239,14 @@ export default function Page() {
 
                                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         <div className="space-y-1.5">
-                                          <Label className="text-xs font-medium">Recipient Email *</Label>
+                                          <Label className="text-xs font-medium">
+                                            {sendSource === 'WhatsApp' ? 'Recipient Phone / Contact *' : 'Recipient Email *'}
+                                          </Label>
                                           <Input
-                                            type="email"
+                                            type={sendSource === 'WhatsApp' ? 'tel' : 'email'}
                                             value={recipientEmail}
                                             onChange={(e) => setRecipientEmail(e.target.value)}
-                                            placeholder="recipient@example.com"
+                                            placeholder={sendSource === 'WhatsApp' ? '+1 (555) 123-4567' : 'recipient@example.com'}
                                             className="text-sm"
                                           />
                                         </div>
@@ -1185,6 +1259,7 @@ export default function Page() {
                                             <SelectContent>
                                               <SelectItem value="Gmail">Gmail</SelectItem>
                                               <SelectItem value="Outlook">Outlook</SelectItem>
+                                              <SelectItem value="WhatsApp">WhatsApp</SelectItem>
                                             </SelectContent>
                                           </Select>
                                         </div>
@@ -1520,6 +1595,18 @@ export default function Page() {
                         </div>
                         <Badge className="text-xs bg-green-100 text-green-700 border-green-200 hover:bg-green-100">Connected</Badge>
                       </div>
+                      <div className="flex items-center justify-between p-3 rounded-xl bg-secondary/50 border border-border">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center">
+                            <HiOutlineChatBubbleLeftRight className="h-5 w-5 text-green-500" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium">WhatsApp</p>
+                            <p className="text-xs text-muted-foreground">+1 (555) 000-1234</p>
+                          </div>
+                        </div>
+                        <Badge className="text-xs bg-green-100 text-green-700 border-green-200 hover:bg-green-100">Connected</Badge>
+                      </div>
                     </CardContent>
                   </Card>
 
@@ -1534,7 +1621,8 @@ export default function Page() {
                         { name: 'Urgent', desc: 'Emails requiring immediate action or response, flagged as high priority' },
                         { name: 'Team Updates', desc: 'Internal team communications, standup summaries, sprint updates' },
                         { name: 'External', desc: 'Emails from outside the organization, partner inquiries, vendor communications' },
-                        { name: 'FYI', desc: 'Informational emails, no action needed, newsletters, announcements' }
+                        { name: 'FYI', desc: 'Informational emails, no action needed, newsletters, announcements' },
+                        { name: 'WhatsApp Groups', desc: 'Messages from WhatsApp group chats, team channels, and leadership groups' }
                       ].map(rule => (
                         <div key={rule.name} className="p-3 rounded-xl border border-border">
                           <div className="flex items-center gap-2 mb-1">
@@ -1600,6 +1688,14 @@ export default function Page() {
                           <p className="text-xs text-muted-foreground">Notifications from external contacts</p>
                         </div>
                         <Switch checked={notifExternal} onCheckedChange={setNotifExternal} />
+                      </div>
+                      <Separator />
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium">WhatsApp Messages</p>
+                          <p className="text-xs text-muted-foreground">Notifications for WhatsApp messages and groups</p>
+                        </div>
+                        <Switch checked={notifWhatsApp} onCheckedChange={setNotifWhatsApp} />
                       </div>
                       <Separator />
                       <div className="flex items-center justify-between">
